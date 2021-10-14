@@ -1,13 +1,3 @@
-//Gustav
-def least_squares(y, tx):
-   w = np.linalg.solve(tx.T@tx, tx.T@y)
-   mse = 1/len(y)*np.linalg.norm(tx @ w - y)**2
-   return w, mse
-   
-   
-   
-   //Olle
-   
 #GD
 def compute_gradient(y, tx, w):
     grad = -1/(y.shape[0])*(tx.T@(y-tx@w))
