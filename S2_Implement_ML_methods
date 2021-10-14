@@ -8,6 +8,17 @@ def least_squares(y, tx):
    
    //Olle
    
+   
+  #loss calculation
+def compute_loss(y, tx, w):
+    """Calculate the loss.
+    You can calculate the loss using mse or mae.
+    """
+    
+    loss = 1/(2*y.shape[0])*np.sum((y-tx@w)**2) #MSE
+    #loss = 1/(2*y.shape[0])*np.sum(np.absolute(y-tx@w)) #MAE
+    return loss
+    
 #GD
 def compute_gradient(y, tx, w):
     grad = -1/(y.shape[0])*(tx.T@(y-tx@w))
