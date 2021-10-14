@@ -1,3 +1,17 @@
+#Normal
+def least_squares(y, tx):
+    """calculate the least squares solution."""
+    # Grad for MSE loss function: 1/N*XT(Xw-Y). This we set = 0.
+    # => we should solve XTXW = XTY
+    # instead of using inv (computationally heavy, inverse of XTX = inverse of DxD), we will solve the equation using np.solve(A,b)
+    # where Ax=b form means A=XTX (Rdxd), b=XTY (Rd)
+    
+    w = np.linalg.solve(tx.T@tx, tx.T@y)
+    mse = 1/y.shape[0]*np.linalg.norm(tx@w-y)**2
+    return mse, w
+    
+
+
 #GD
 def compute_gradient(y, tx, w):
     grad = -1/(y.shape[0])*(tx.T@(y-tx@w))
@@ -56,17 +70,16 @@ def stochastic_gradient_descent(
     return losses, ws
 
 
+def ridge_regression(y, tx, lambda_):
+    """implement ridge regression."""
+    # ***************************************************
+    # ridge regression:
+    # ***************************************************
+    a = (tx.T @ tx) + ((2 * y.shape[0] * lambda_) * np.eye(tx.shape[1]))
+    b = tx.T @ y
 
-#Normal
-def least_squares(y, tx):
-    """calculate the least squares solution."""
-    # Grad for MSE loss function: 1/N*XT(Xw-Y). This we set = 0.
-    # => we should solve XTXW = XTY
-    # instead of using inv (computationally heavy, inverse of XTX = inverse of DxD), we will solve the equation using np.solve(A,b)
-    # where Ax=b form means A=XTX (Rdxd), b=XTY (Rd)
     
-    w = np.linalg.solve(tx.T@tx, tx.T@y)
-    mse = 1/y.shape[0]*np.linalg.norm(tx@w-y)**2
-    return mse, w
-    
-   
+    w_ridge = np.linalg.solve(a, b)
+    mse = compute_loss(y, tx, w_ridge)
+
+    return w_ridge, mse
