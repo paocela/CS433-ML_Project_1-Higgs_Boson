@@ -1,2 +1,5 @@
 # No Jupyter Notebook Checkpoints
 .ipynb_checkpoints
+# No data folder, after cloning insert test.csv manually
+data/*
+__pycache__
