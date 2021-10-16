@@ -1,5 +1,16 @@
 import numpy as np
-from helpers.py import compute_loss
+from helpers import compute_loss
+import datetime
+
+
+"""Loss"""
+
+def compute_loss(y, tx, w):
+    prediction = np.dot(tx, w)
+    errors = prediction - y
+    return np.mean(errors ** 2)
+
+##########################################
 
 """Least Squares"""
 
@@ -19,39 +30,85 @@ def least_squares(y, tx):
     
     return w, loss
 
-
+##########################################
 
 """Gradient Descent"""
 
 def compute_gradient(y, tx, w):
     """Compute the gradient."""
     
+    # error = y - prediction
+    # prediction = Xtilda * w
     grad = -1/(y.shape[0])*(tx.T@(y-tx@w))
+    
     return grad
-
 
 def gradient_descent(y, tx, initial_w, max_iters, gamma):
     """Gradient descent algorithm."""
-    
+    # Define parameters to store w and loss
     ws = [initial_w]
     losses = []
     w = initial_w
     for n_iter in range(max_iters):
-        # compute gradient and loss
+        # compute loss and gradient
         gradient = compute_gradient(y, tx, w)
         loss = compute_loss(y, tx, w)
         
-        # update w by the gradient
-        w = w - gamma*gradient
+        # update weight by gradient
+        w = w - (gamma * gradient)
         
-        print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
-              bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+        # store weight and loss
+        ws.append(w)
+        losses.append(loss)
+        
+        # print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
 
-    return w, loss
+    return losses, ws
 
+def least_squares_GD(y, tx, initial_w, max_iters, gamma):
+    # Start gradient descent.
+    start_time = datetime.datetime.now()
+    gradient_losses, gradient_ws = gradient_descent(y, tx, initial_w, max_iters, gamma)
+    end_time = datetime.datetime.now()
+    
+    # Print result
+    exection_time = (end_time - start_time).total_seconds()
+    print("Gradient Descent: execution time={t:.3f} seconds".format(t=exection_time))
+    
+    print(f"Gradient Descend: final loss = {gradient_losses[-1]}")
+    
+    # return only final loss and optimal weights
+    return gradient_ws[-1], gradient_losses[-1]
 
+##########################################
 
 """Stochastic Gradient Descent"""
+
+def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
+    """
+    Generate a minibatch iterator for a dataset.
+    Takes as input two iterables (here the output desired values 'y' and the input data 'tx')
+    Outputs an iterator which gives mini-batches of `batch_size` matching elements from `y` and `tx`.
+    Data can be randomly shuffled to avoid ordering in the original data messing with the randomness of the minibatches.
+    Example of use :
+    for minibatch_y, minibatch_tx in batch_iter(y, tx, 32):
+        <DO-SOMETHING>
+    """
+    data_size = len(y)
+
+    if shuffle:
+        shuffle_indices = np.random.permutation(np.arange(data_size))
+        shuffled_y = y[shuffle_indices]
+        shuffled_tx = tx[shuffle_indices]
+    else:
+        shuffled_y = y
+        shuffled_tx = tx
+    for batch_num in range(num_batches):
+        start_index = batch_num * batch_size
+        end_index = min((batch_num + 1) * batch_size, data_size)
+        if start_index != end_index:
+            yield shuffled_y[start_index:end_index], shuffled_tx[start_index:end_index]
+
 
 def compute_stoch_gradient(y, tx, w):
     """Compute a stochastic gradient from just few examples n and their corresponding y_n labels."""
@@ -60,27 +117,45 @@ def compute_stoch_gradient(y, tx, w):
     return grad
 
 
-def stochastic_gradient_descent(y, tx, initial_w, batch_size=1, max_iters, gamma):
+def stochastic_gradient_descent(y, tx, initial_w, batch_size, max_iters, gamma):
     """Stochastic gradient descent algorithm."""
     
     ws = [initial_w]
     losses = []
     w = initial_w
-    for n_iter in range(max_iters):
-        for minibatch_y, minibatch_tx in batch_iter(y, tx, batch_size):
-            # compute gradient and loss
-            gradient = compute_gradient(minibatch_y, minibatch_tx, w)
+    minibatch_generator = batch_iter(y, tx, batch_size)
+    for minibatch_y, minibatch_tx in minibatch_generator:
+        for n_iter in range(max_iters):
+            
+            stoc_gradient = compute_stoch_gradient(minibatch_y, minibatch_tx, w)
             loss = compute_loss(minibatch_y, minibatch_tx, w)
             
-            # update w by gradient
-            w = w - gamma*gradient
+            w = w - (gamma * stoc_gradient)
             
-            print("Stochastic Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
-                  bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+            ws.append(w)
+            losses.append(loss)
+            # print("Stocastic Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
 
-    return w, loss
+    return losses, ws
 
+def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
+    batch_size = 1
+    
+    # Start SGD
+    start_time = datetime.datetime.now()
+    sgd_losses, sgd_ws = stochastic_gradient_descent(y, tx, initial_w, batch_size, max_iters, gamma)
+    end_time = datetime.datetime.now()
 
+    # Print result
+    exection_time = (end_time - start_time).total_seconds()
+    print("SGD: execution time={t:.3f} seconds".format(t=exection_time))
+    
+    print(f"Gradient Descend: final loss = {sgd_losses[-1]}")
+    
+    # return only final loss and optimal weights
+    return sgd_ws[-1], sgd_losses[-1]
+
+##########################################
 
 """Ridge Regression"""
 
