@@ -14,6 +14,38 @@ def build_model_data(prediction, data):
     y = prediction
     x = data
     num_samples = len(y)
-    #tx = np.c_[np.ones(num_samples), x]
+    tx = np.c_[np.ones(num_samples), x]
     return y, tx
 
+"""Substitute NaN values (-999) with mean of each row"""
+# TODO: substitute with code more efficient 
+# - np.nanmean()
+# - arr[arr > 255] = x
+def substitute_nan_with_mean(tx):
+    avg = np.zeros([tx.shape[1]])
+    for i in range(tx.shape[1]):
+        sum = 0
+        n = 0
+        for j in range(tx.shape[0]):
+            if tx[j,i] != -999:
+                sum += tx[j,i]
+                n += 1
+        avg[i] = sum/n
+        for j in range(tx.shape[0]):
+            if tx[j,i] == -999:
+                tx[j,i] = avg[i]
+    return tx
+
+"""Substitute outliers using quantile ranges with the median """
+def substitute_outliers(tx, low_bound, high_bound):
+    return_tx = np.array([])
+    for row in tx:
+        median_row = np.median(row)
+        a = np.array(row)
+        upper_quartile = np.percentile(a, high_bound)
+        lower_quartile = np.percentile(a, low_bound)
+        for index, y in enumerate(a):
+            if y < lower_quartile and y > upper_quartile:
+                a[index] = median_row
+        np.append(return_tx, a)
+    return return_tx
