@@ -38,14 +38,16 @@ def substitute_nan_with_mean(tx):
 
 """Substitute outliers using quantile ranges with the median """
 def substitute_outliers(tx, low_bound, high_bound):
-    return_tx = np.array([])
-    for row in tx:
+    return_tx = np.empty((tx.shape[1], tx.shape[0]))
+    for index_row, row in enumerate(tx.T):
         median_row = np.median(row)
         a = np.array(row)
         upper_quartile = np.percentile(a, high_bound)
         lower_quartile = np.percentile(a, low_bound)
+        
         for index, y in enumerate(a):
-            if y < lower_quartile and y > upper_quartile:
+            if y < lower_quartile or y > upper_quartile:
                 a[index] = median_row
-        np.append(return_tx, a)
-    return return_tx
+                
+        return_tx[index_row] = a
+    return return_tx.T
