@@ -1,0 +1,7 @@
+https://www.overleaf.com/8881247996wgqmtpkqbkmf 
+
+Thoughts ML-project
+Exploratory data analysis: Categorize the data into discrete and continuous variables. Skewed data can be changed to logratimic scale to make it less skewed. 
+Feature processing: Category 10, 11, 20, 22 could be added together as one category. 
+
+Question: How should we calculate the sum of the gradient as suggested when calculating the mini-batch sgd 
