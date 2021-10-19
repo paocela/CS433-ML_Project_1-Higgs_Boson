@@ -162,10 +162,11 @@ def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
 def build_poly(x, degree):
     """polynomial basis functions for input data x, for j=0 up to j=degree."""
     
-    poly = np.ones(len(x), 1)
+    poly = np.ones((len(x), 1))
     for deg in range(1, degree + 1):
         poly = np.c_[poly, np.power(x, deg)]
     return poly
+
 
 def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
     """function to find best lambda parameter for ridge regression"""
@@ -185,12 +186,8 @@ def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
         weights_train, mse_train = ridge_regression(y_train, matrix_train, lambda_)
         
         rmse_tr.append(np.sqrt(2 * mse_train))
-        rmse_te.append(np.sqrt(2 * compute_loss(y_te, tx_te, weights_train)))
+        rmse_te.append(np.sqrt(2 * compute_loss(y_test, matrix_test, weights_train)))
         
-        #print("proportion={p}, degree={d}, lambda={l:.3f}, Training RMSE={tr:.3f}, Testing RMSE={te:.3f}".format(p=ratio, d=degree, l=lambda_, tr=rmse_tr[ind], te=rmse_te[ind]))
-        
-    # Plot the obtained results
-    plot_train_test(rmse_tr, rmse_te, lambdas, degree)
     
     index_lambda_optimal = np.argmin(rmse_te)
     best_lambda = lambdas[index_lambda_optimal]
@@ -208,6 +205,8 @@ def ridge_regression(y, tx, lambda_):
     
     # solve linear system and compute loss
     w = np.linalg.solve(a, b)
-    loss = compute_loss(y, tx, w_ridge)
+    loss = compute_loss(y, tx, w)
+    
+    print(f"Ridge Regression: loss = {loss}")
 
     return w, loss
