@@ -1,6 +1,6 @@
 import numpy as np
 import datetime
-
+from helpers import *
 
 """Loss"""
 
@@ -8,6 +8,7 @@ def compute_loss(y, tx, w):
     prediction = np.dot(tx, w)
     errors = prediction - y
     return np.mean(errors ** 2)
+
 
 ##########################################
 
@@ -133,7 +134,7 @@ def stochastic_gradient_descent(y, tx, initial_w, batch_size, max_iters, gamma):
             
             ws.append(w)
             losses.append(loss)
-            # print("Stocastic Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+            #print("Stocastic Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
 
     return losses, ws
 
@@ -158,7 +159,49 @@ def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
 
 """Ridge Regression"""
 
+def build_poly(x, degree):
+    """polynomial basis functions for input data x, for j=0 up to j=degree."""
+    
+    poly = np.ones(len(x), 1)
+    for deg in range(1, degree + 1):
+        poly = np.c_[poly, np.power(x, deg)]
+    return poly
+
+def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
+    """function to find best lambda parameter for ridge regression"""
+    
+    # split the data, and return train and test data
+    x_train, x_test, y_train, y_test = split_data(x, y, ratio, seed)
+
+    # form train and test data with polynomial basis function
+    matrix_train = build_poly(x_train, degree) # matrix = tx
+    matrix_test = build_poly(x_test, degree) # matrix = tx
+    
+    rmse_tr = []
+    rmse_te = []
+
+    for ind, lambda_ in enumerate(lambdas):
+        # ridge regression with a given lambda
+        weights_train, mse_train = ridge_regression(y_train, matrix_train, lambda_)
+        
+        rmse_tr.append(np.sqrt(2 * mse_train))
+        rmse_te.append(np.sqrt(2 * compute_loss(y_te, tx_te, weights_train)))
+        
+        #print("proportion={p}, degree={d}, lambda={l:.3f}, Training RMSE={tr:.3f}, Testing RMSE={te:.3f}".format(p=ratio, d=degree, l=lambda_, tr=rmse_tr[ind], te=rmse_te[ind]))
+        
+    # Plot the obtained results
+    plot_train_test(rmse_tr, rmse_te, lambdas, degree)
+    
+    index_lambda_optimal = np.argmin(rmse_te)
+    best_lambda = lambdas[index_lambda_optimal]
+    
+    print(f"Ridge Regression Hypherparameter found: Lambda = {best_lambda}")
+
+    return best_lambda
+    
+
 def ridge_regression(y, tx, lambda_):
+    """Ridge Regression Algorithm"""
     # calculate parameters of linear system
     a = (tx.T @ tx) + ((2 * y.shape[0] * lambda_) * np.eye(tx.shape[1]))
     b = tx.T @ y
