@@ -22,18 +22,10 @@ def build_model_data(prediction, data):
 # - np.nanmean()
 # - arr[arr > 255] = x
 def substitute_nan_with_mean(tx):
-    avg = np.zeros([tx.shape[1]])
-    for i in range(tx.shape[1]):
-        sum = 0
-        n = 0
-        for j in range(tx.shape[0]):
-            if tx[j,i] != -999:
-                sum += tx[j,i]
-                n += 1
-        avg[i] = sum/n
-        for j in range(tx.shape[0]):
-            if tx[j,i] == -999:
-                tx[j,i] = avg[i]
+    tx[tx==-999] = np.nan
+    avg_per_column = np.nanmean(tx, axis=0)
+    index_to_subst = np.where(np.isnan(tx))
+    tx[index_to_subst] = np.take(avg_per_column, index_to_subst[1])
     return tx
 
 """Substitute outliers using quantile ranges with the median """
