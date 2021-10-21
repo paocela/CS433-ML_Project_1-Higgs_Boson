@@ -29,23 +29,27 @@ def substitute_nan_with_mean(tx):
     return tx
 
 """Substitute outliers using quantile ranges with the median """
-def substitute_outliers(tx, low_bound, high_bound):
-    return_tx = np.empty((tx.shape[1], tx.shape[0]))
-    for index_row, row in enumerate(tx.T):
-        median_row = np.median(row)
-        a = np.array(row)
-        upper_quartile = np.percentile(a, high_bound)
-        lower_quartile = np.percentile(a, low_bound)
-        
-        for index, y in enumerate(a):
-            if y < lower_quartile or y > upper_quartile:
-                a[index] = median_row
-                
-        return_tx[index_row] = a
-    return return_tx.T
+def remove_outliers(y, tx, low_bound, high_bound):
+    # index columns with outliers visible from histograms
+    index_outliers_features = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 14, 17, 20, 22, 24, 27, 28, 29, 30]
+    
+    # consider only related columns
+    tx_outliers = tx[:, index_outliers_features]
+    
+    # calculate quartiles
+    lower_quartile = np.percentile(tx_outliers, low_bound, axis=0)
+    upper_quartile = np.percentile(tx_outliers, high_bound, axis=0)
+    
+    # calculate index to be removed
+    remove_index = np.argwhere((tx_outliers < lower_quartile) | (tx_outliers > upper_quartile))[:, 0]
+    
+    return_tx = np.delete(tx, remove_index, axis=0)
+    return_y = np.delete(y, remove_index, axis=0)
+    
+    return (return_y, return_tx)
 
+"""split the dataset based on the split ratio."""
 def split_data(x, y, ratio, seed=1):
-    """split the dataset based on the split ratio."""
     # set seed
     np.random.seed(seed)
     # generate random indices
