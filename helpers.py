@@ -21,32 +21,32 @@ def build_model_data(prediction, data):
 # TODO: substitute with code more efficient 
 # - np.nanmean()
 # - arr[arr > 255] = x
-def substitute_nan_with_mean(tx):
-    tx[tx==-999] = np.nan
-    avg_per_column = np.nanmean(tx, axis=0)
-    index_to_subst = np.where(np.isnan(tx))
-    tx[index_to_subst] = np.take(avg_per_column, index_to_subst[1])
-    return tx
+def substitute_nan_with_mean(x):
+    x[x==-999] = np.nan
+    avg_per_column = np.nanmean(x, axis=0)
+    index_to_subst = np.where(np.isnan(x))
+    x[index_to_subst] = np.take(avg_per_column, index_to_subst[1])
+    return x
 
 """Substitute outliers using quantile ranges with the median """
-def remove_outliers(y, tx, low_bound, high_bound):
+def remove_outliers(y, x, low_bound, high_bound):
     # index columns with outliers visible from histograms
-    index_outliers_features = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 14, 17, 20, 22, 24, 27, 28, 29, 30]
+    index_outliers_features = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 13, 16, 19, 21, 23, 26, 27, 28, 29]
     
     # consider only related columns
-    tx_outliers = tx[:, index_outliers_features]
+    x_outliers = x[:, index_outliers_features]
     
     # calculate quartiles
-    lower_quartile = np.percentile(tx_outliers, low_bound, axis=0)
-    upper_quartile = np.percentile(tx_outliers, high_bound, axis=0)
+    lower_quartile = np.percentile(x_outliers, low_bound, axis=0)
+    upper_quartile = np.percentile(x_outliers, high_bound, axis=0)
     
     # calculate index to be removed
-    remove_index = np.argwhere((tx_outliers < lower_quartile) | (tx_outliers > upper_quartile))[:, 0]
+    remove_index = np.argwhere((x_outliers < lower_quartile) | (x_outliers > upper_quartile))[:, 0]
     
-    return_tx = np.delete(tx, remove_index, axis=0)
+    return_x = np.delete(x, remove_index, axis=0)
     return_y = np.delete(y, remove_index, axis=0)
     
-    return (return_y, return_tx)
+    return (return_y, return_x)
 
 """split the dataset based on the split ratio."""
 def split_data(x, y, ratio, seed=1):
@@ -64,3 +64,12 @@ def split_data(x, y, ratio, seed=1):
     y_tr = y[index_tr]
     y_te = y[index_te]
     return x_tr, x_te, y_tr, y_te
+
+"""Log transform all features which show right-skewness and have strictly positive values"""
+def log_transform(x):
+    index_right_skewed = [0, 2, 5, 9, 10, 13, 16, 19, 21, 23, 26]
+    
+    return_x = np.copy(x)
+    return_x[:, index_right_skewed] = np.log(return_x[:, index_right_skewed])
+    
+    return return_x
