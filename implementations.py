@@ -112,7 +112,6 @@ def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
 
 def compute_stoch_gradient(y, tx, w):
     """Compute a stochastic gradient from just few examples n and their corresponding y_n labels."""
-    
     grad = -1/(y.shape[0])*(tx.T@(y-tx@w))
     return grad
 
@@ -123,14 +122,14 @@ def stochastic_gradient_descent(y, tx, initial_w, batch_size, max_iters, gamma):
     ws = [initial_w]
     losses = []
     w = initial_w
-    minibatch_generator = batch_iter(y, tx, batch_size)
-    for minibatch_y, minibatch_tx in minibatch_generator:
-        for n_iter in range(max_iters):
+    
+    for n_iter in range(max_iters):
+        for minibatch_y, minibatch_tx in batch_iter(y, tx, batch_size, num_batches=1):
             
             stoc_gradient = compute_stoch_gradient(minibatch_y, minibatch_tx, w)
-            loss = compute_loss(minibatch_y, minibatch_tx, w)
             
             w = w - (gamma * stoc_gradient)
+            loss = compute_loss(y, tx, w)
             
             ws.append(w)
             losses.append(loss)
