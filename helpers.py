@@ -1,5 +1,13 @@
 import numpy as np
 
+def preprocess_data(data, prediction, low, high, outlier_remove):
+    data = substitute_nan_with_mean(data)
+    data = log_transform(data)
+    x, mean_x, std_x = standardize(data)
+    if(outlier_remove == True):
+        prediction, x = remove_outliers(prediction, x, low, high)
+    return prediction, x
+
 def standardize(x):
     """Standardize the original data set."""
     mean_x = np.mean(x, axis=0)
@@ -18,9 +26,6 @@ def build_model_data(prediction, data):
     return y, tx
 
 """Substitute NaN values (-999) with mean of each row"""
-# TODO: substitute with code more efficient 
-# - np.nanmean()
-# - arr[arr > 255] = x
 def substitute_nan_with_mean(x):
     x[x==-999] = np.nan
     avg_per_column = np.nanmean(x, axis=0)
@@ -73,3 +78,16 @@ def log_transform(x):
     return_x[:, index_right_skewed] = np.log(return_x[:, index_right_skewed])
     
     return return_x
+
+def drop_column(data):
+    index_col = []
+    return_data = np.delete(data, index_col, axis=1)
+    return return_data
+
+def build_poly(x, degree):
+    """polynomial basis functions for input data x, for j=0 up to j=degree."""
+    
+    poly = np.ones((len(x), 1))
+    for deg in range(1, degree + 1):
+        poly = np.c_[poly, np.power(x, deg)]
+    return poly

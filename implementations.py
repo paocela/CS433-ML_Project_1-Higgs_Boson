@@ -1,6 +1,7 @@
 import numpy as np
 import datetime
 from helpers import *
+from plots import *
 
 """Loss"""
 
@@ -158,15 +159,6 @@ def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
 
 """Ridge Regression"""
 
-def build_poly(x, degree):
-    """polynomial basis functions for input data x, for j=0 up to j=degree."""
-    
-    poly = np.ones((len(x), 1))
-    for deg in range(1, degree + 1):
-        poly = np.c_[poly, np.power(x, deg)]
-    return poly
-
-
 def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
     """function to find best lambda parameter for ridge regression"""
     
@@ -179,8 +171,10 @@ def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
     
     rmse_tr = []
     rmse_te = []
-
+    
     for ind, lambda_ in enumerate(lambdas):
+        
+        print("Progression... ({bi}/{ti})".format(bi=ind, ti=lambdas.shape[0]))
         # ridge regression with a given lambda
         weights_train, mse_train = ridge_regression(y_train, matrix_train, lambda_)
         
@@ -192,7 +186,8 @@ def find_ridge_hyperparameters(y, x, degree, ratio, seed, lambdas):
     best_lambda = lambdas[index_lambda_optimal]
     
     print(f"Ridge Regression Hypherparameter found: Lambda = {best_lambda}")
-
+    plot_train_test(rmse_tr, rmse_te, lambdas, degree)
+    
     return best_lambda
     
 
@@ -206,6 +201,63 @@ def ridge_regression(y, tx, lambda_):
     w = np.linalg.solve(a, b)
     loss = compute_loss(y, tx, w)
     
-    print(f"Ridge Regression: loss = {loss}")
-
     return w, loss
+
+##########################################
+
+"""K-fold cross validation"""
+
+def build_k_indices(y, k_fold, seed):
+    """build k indices for k-fold."""
+    num_row = y.shape[0]
+    interval = int(num_row / k_fold)
+    np.random.seed(seed)
+    indices = np.random.permutation(num_row)
+    k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)]
+    return np.array(k_indices)
+
+def cross_validation(y, x, k_indices, k, lambda_, degree):
+    """return the loss of ridge regression."""
+    # get k'th subgroup in test, others in train:
+    te_indice = k_indices[k]
+    tr_indice = k_indices[~(np.arange(k_indices.shape[0]) == k)]
+    tr_indice = tr_indice.reshape(-1)
+    y_test = y[te_indice]
+    y_train = y[tr_indice]
+    x_test = x[te_indice]
+    x_train = x[tr_indice]
+    
+    # form data with polynomial degree: 
+    matrix_train = build_poly(x_train, degree) # matrix = tx
+    matrix_test = build_poly(x_test, degree) # matrix = tx
+    
+    # ridge regression: 
+    weights_train, mse_train = ridge_regression(y_train, matrix_train, lambda_)
+    mse_test = compute_loss(y_test, matrix_test, weights_train)
+   
+    return mse_train, mse_test
+
+def find_lambda_cross_validation(y, x, degree, ratio, seed, lambdas, k_fold):
+    seed = 1
+    degree = 7
+    k_fold = 4
+    lambdas = np.logspace(-4, 0, 30)
+    # split data in k fold
+    k_indices = build_k_indices(y, k_fold, seed)
+    # define lists to store the loss of training data and test data
+    rmse_tr = []
+    rmse_te = []
+    # cross validation:
+    for ind, lambda_ in enumerate(lambdas):
+        rmse_tr_tmp = []
+        rmse_te_tmp = []
+        for k in range(k_fold):
+            mse_train, mse_test = cross_validation(y, x, k_indices, k, lambda_, degree)
+            
+            rmse_tr_tmp.append(np.sqrt(2 * mse_train))
+            rmse_te_tmp.append(np.sqrt(2 * mse_test))
+        
+        rmse_tr.append(np.mean(rmse_tr_tmp))
+        rmse_te.append(np.mean(rmse_te_tmp))
+
+    cross_validation_visualization(lambdas, rmse_tr, rmse_te)
