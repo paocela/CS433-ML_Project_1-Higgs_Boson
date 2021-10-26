@@ -261,3 +261,61 @@ def find_lambda_cross_validation(y, x, degree, ratio, seed, lambdas, k_fold):
         rmse_te.append(np.mean(rmse_te_tmp))
 
     cross_validation_visualization(lambdas, rmse_tr, rmse_te)
+
+    
+'''
+logistic regression
+'''
+
+def sigmoid(t):
+    """apply the sigmoid function on t."""
+    #sigmoid = (1+np.exp(-t))**(-1)
+    sigmoid = np.exp(-np.logaddexp(0, -t))
+    return sigmoid
+
+def calculate_log_loss(y, tx, w):
+    """compute the loss: negative log likelihood."""
+    p = tx@w
+    s = sigmoid(p)
+    loss = -(y.T@np.log(s) + (1-y).T@np.log(1-s))
+    return np.sum(loss)
+
+def calculate_log_gradient(y, tx, w):
+    """compute the gradient of loss."""
+    s = sigmoid(tx@w)
+    y = y.reshape((y.shape[0],1))
+    return tx.T@(s-y)
+
+def log_learning_by_gradient_descent(y, tx, w, gamma):
+    """
+    Do one step of gradient descent using logistic regression.
+    Return the loss and the updated w.
+    """
+
+    loss = calculate_log_loss(y, tx, w)
+
+    loss_grad = calculate_log_gradient(y, tx, w)
+
+    w = w - gamma*loss_grad
+    
+    return loss, w
+
+
+def penalized_logistic_regression(y, tx, w, lambda_):
+    """return the loss, gradient"""
+    loss = calculate_log_loss(y, tx, w) + lambda_/2*np.linalg.norm(w)
+    gradient = calculate_log_gradient(y, tx, w) + lambda_/2*2*w #gradient of euclnorm(x) = 2x
+    return loss, gradient
+
+
+def learning_by_penalized_gradient(y, tx, w, gamma, lambda_):
+    """
+    Do one step of gradient descent, using the penalized logistic regression.
+    Return the loss and updated w.
+    """
+    loss, gradient = penalized_logistic_regression(y, tx, w, lambda_)
+    w = w - gamma*gradient
+    
+    
+    return loss, w
+
