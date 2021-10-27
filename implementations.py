@@ -207,125 +207,89 @@ def ridge_regression(y, tx, lambda_):
 
 """K-fold cross validation"""
 
-def build_k_indices(y, k_fold, seed):
-    """build k indices for k-fold."""
-    num_row = y.shape[0]
-    interval = int(num_row / k_fold)
-    np.random.seed(seed)
-    indices = np.random.permutation(num_row)
-    k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)]
-    return np.array(k_indices)
-
-def cross_validation(y, x, k_indices, k, lambda_, degree):
-    """return the loss of ridge regression."""
-    # get k'th subgroup in test, others in train:
-    te_indice = k_indices[k]
-    tr_indice = k_indices[~(np.arange(k_indices.shape[0]) == k)]
-    tr_indice = tr_indice.reshape(-1)
-    y_test = y[te_indice]
-    y_train = y[tr_indice]
-    x_test = x[te_indice]
-    x_train = x[tr_indice]
-    
-    # form data with polynomial degree: 
-    matrix_train = build_poly(x_train, degree) # matrix = tx
-    matrix_test = build_poly(x_test, degree) # matrix = tx
-    
-    # ridge regression: 
-    weights_train, mse_train = ridge_regression(y_train, matrix_train, lambda_)
-    mse_test = compute_loss(y_test, matrix_test, weights_train)
-   
-    return mse_train, mse_test
-
-def find_lambda_cross_validation(y, x, degree, ratio, seed, lambdas, k_fold):
-    seed = 1
-    degree = 7
-    k_fold = 4
-    lambdas = np.logspace(-4, 0, 30)
-    # split data in k fold
-    k_indices = build_k_indices(y, k_fold, seed)
-    # define lists to store the loss of training data and test data
-    rmse_tr = []
-    rmse_te = []
-    # cross validation:
-    for ind, lambda_ in enumerate(lambdas):
-        rmse_tr_tmp = []
-        rmse_te_tmp = []
-        for k in range(k_fold):
-            mse_train, mse_test = cross_validation(y, x, k_indices, k, lambda_, degree)
-            
-            rmse_tr_tmp.append(np.sqrt(2 * mse_train))
-            rmse_te_tmp.append(np.sqrt(2 * mse_test))
-        
-        rmse_tr.append(np.mean(rmse_tr_tmp))
-        rmse_te.append(np.mean(rmse_te_tmp))
-
-    cross_validation_visualization(lambdas, rmse_tr, rmse_te)
-    
-"""Cross-validation for least squares""" 
- 
-def cross_validation(y, x, k_indices, k, lambda_, degree): 
-    """return the loss of ridge regression.""" 
-    # *********************************************** 
-    # get k'th subgroup in test, others in train: 
-    # *********************************************** 
-    x_train, y_train = x[np.ravel(k_indices[: k]), :], y[np.ravel(k_indices[: k])] 
-    x_test, y_test = x[k_indices[k]], y[k_indices[k]] 
-    x_train_temp = x[np.ravel(k_indices[k+1 :]), :] 
-    y_train_temp = y[np.ravel(k_indices[k+1 :])] 
-    x_train, y_train = np.append(x_train, x_train_temp, 0), np.append(y_train, y_train_temp) 
- 
-    # *********************************************** 
-    # form data with polynomial degree: Not done here 
-    # *********************************************** 
-    #polx_train = build_poly(x_train, degree) 
-    #polx_test = build_poly(x_test, degree) 
+##########################################     
+"""Cross-validation for least squares, gradient descent, stochastic gradient descent, ridge regression"""  
+  
+def cross_validation(model_used, y, x, k_indices, k, seed = 0, max_iters = 0, initial_w = 0, lambda_ = 0, gamma = 0, degree = 0):  
+    # *******************************************  
+    # cross validation for model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
+    # *******************************************  
      
-    # *********************************************** 
-    # find least squares 
-    # *********************************************** 
-    weights, mse_train = least_squares(y_train, x_train) 
-                              
-    # *********************************************** 
-    # calculate the loss for train and test data: 
-    # *********************************************** 
-    mse_test = compute_loss(y_test, x_test, weights) 
-                              
-    loss_tr = mse_train 
-    loss_te = mse_test 
+    # *******************************************  
+    # get k'th subgroup in test, others in train:  
+    # *******************************************  
+    x_train, y_train = x[np.ravel(k_indices[: k]), :], y[np.ravel(k_indices[: k])]  
+    x_test, y_test = x[k_indices[k]], y[k_indices[k]]  
+    x_train_temp = x[np.ravel(k_indices[k+1 :]), :]  
+    y_train_temp = y[np.ravel(k_indices[k+1 :])]  
+    x_train, y_train = np.append(x_train, x_train_temp, 0), np.append(y_train, y_train_temp)  
+  
+    # *******************************************  
+    # form data with polynomial degree: only for ridge regression  
+    # *******************************************  
+    if degree > 0: 
+        x_train = build_poly(x_train, degree)  
+        x_test = build_poly(x_test, degree)  
+      
+    # *******************************************  
+    # find w and mse using given model 
+    # ******************************************* 
      
-    return loss_tr, loss_te 
+    if model_used == 'least_squares': 
+        weights, mse_train = least_squares(y_train, x_train) 
+    elif model_used == 'gradient_descent': 
+        weights, mse_train = least_squares_GD(y_train, x_train, initial_w, max_iters, gamma) 
+    elif model_used == 'stochastic_gradient_descent': 
+        weights, mse_train = least_squares_SGD(y_train, x_train, initial_w, max_iters, gamma) 
+    elif model_used == 'ridge_regression': 
+        weights, mse_train = ridge_regression(y_train, x_train, lambda_) 
+                            
+     
+    # *******************************************  
+    # calculate the loss for train and test data:  
+    # *******************************************  
+    mse_test = compute_loss(y_test, x_test, weights)  
+                               
+    loss_tr = mse_train  
+    loss_te = mse_test  
+      
+    return loss_tr, loss_te  
+  
+def build_k_indices(y, k_fold, seed):  
+    """build k indices for k-fold."""  
+    num_row = y.shape[0]  
+    interval = int(num_row / k_fold)  
+    np.random.seed(seed)  
+    indices = np.random.permutation(num_row)  
+    k_indices = [indices[k * interval: (k + 1) * interval]  
+                 for k in range(k_fold)]  
+    return np.array(k_indices) 
  
-def build_k_indices(y, k_fold, seed): 
-    """build k indices for k-fold.""" 
-    num_row = y.shape[0] 
-    interval = int(num_row / k_fold) 
-    np.random.seed(seed) 
-    indices = np.random.permutation(num_row) 
-    k_indices = [indices[k * interval: (k + 1) * interval] 
-                 for k in range(k_fold)] 
-    return np.array(k_indices)
-
-def cross_validation_least_squares(y, x, degree, seed, lambda_, k_fold):
-    # split data in k fold 
-    k_indices = build_k_indices(y, k_fold, seed) 
-    # define lists to store the loss of training data and test data 
-    rmse_tr = [] 
-    rmse_te = [] 
-    # *********************************************** 
-    # cross validation: 
-
-    loss_tr = [] 
-    loss_te = [] 
-
-    for k in range(k_fold): 
-        loss_train, loss_test = cross_validation(y, x, k_indices, k, lambda_, degree) 
-        loss_tr.append(loss_train) 
-        loss_te.append(loss_test) 
-    rmse_tr.append(sum(loss_tr)/k_fold) 
-    rmse_te.append(sum(loss_te)/k_fold) 
-
-    print(rmse_tr, rmse_te)
+def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iters = 0, initial_w = 0, lambda_ = 0, gamma = 0, degree = 0): 
+    # *******************************************  
+    # model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
+    # *******************************************  
+     
+    # split data in k fold  
+    k_indices = build_k_indices(y, k_fold, seed)  
+    # define lists to store the loss of training data and test data  
+    mse_tr = []  
+    mse_te = []  
+    # *******************************************  
+    # cross validation:  
+ 
+    loss_tr = []
+    loss_te = []  
+ 
+    for k in range(k_fold):  
+        loss_train, loss_test = cross_validation(model_used, y, x, k_indices, k, seed, max_iters, initial_w, lambda_, gamma, degree)  
+        loss_tr.append(loss_train)  
+        loss_te.append(loss_test)  
+    mse_tr.append(sum(loss_tr)/k_fold)  
+    mse_te.append(sum(loss_te)/k_fold)  
+ 
+    print('-->  ',model_used, ' cross-validation: avg_mse_tr=', mse_tr, ' avg_mse_te=', mse_te) 
+     
     
 ##########################################
 
@@ -384,7 +348,6 @@ def learning_by_penalized_gradient(y, tx, w, gamma, lambda_):
     """
     loss, gradient = penalized_logistic_regression(y, tx, w, lambda_)
     w = w - gamma*gradient
-    
     
     return loss, w
 
