@@ -261,8 +261,74 @@ def find_lambda_cross_validation(y, x, degree, ratio, seed, lambdas, k_fold):
         rmse_te.append(np.mean(rmse_te_tmp))
 
     cross_validation_visualization(lambdas, rmse_tr, rmse_te)
-
     
+"""Cross-validation for least squares""" 
+ 
+def cross_validation(y, x, k_indices, k, lambda_, degree): 
+    """return the loss of ridge regression.""" 
+    # *********************************************** 
+    # get k'th subgroup in test, others in train: 
+    # *********************************************** 
+    x_train, y_train = x[np.ravel(k_indices[: k]), :], y[np.ravel(k_indices[: k])] 
+    x_test, y_test = x[k_indices[k]], y[k_indices[k]] 
+    x_train_temp = x[np.ravel(k_indices[k+1 :]), :] 
+    y_train_temp = y[np.ravel(k_indices[k+1 :])] 
+    x_train, y_train = np.append(x_train, x_train_temp, 0), np.append(y_train, y_train_temp) 
+ 
+    # *********************************************** 
+    # form data with polynomial degree: Not done here 
+    # *********************************************** 
+    #polx_train = build_poly(x_train, degree) 
+    #polx_test = build_poly(x_test, degree) 
+     
+    # *********************************************** 
+    # find least squares 
+    # *********************************************** 
+    weights, mse_train = least_squares(y_train, x_train) 
+                              
+    # *********************************************** 
+    # calculate the loss for train and test data: 
+    # *********************************************** 
+    mse_test = compute_loss(y_test, x_test, weights) 
+                              
+    loss_tr = mse_train 
+    loss_te = mse_test 
+     
+    return loss_tr, loss_te 
+ 
+def build_k_indices(y, k_fold, seed): 
+    """build k indices for k-fold.""" 
+    num_row = y.shape[0] 
+    interval = int(num_row / k_fold) 
+    np.random.seed(seed) 
+    indices = np.random.permutation(num_row) 
+    k_indices = [indices[k * interval: (k + 1) * interval] 
+                 for k in range(k_fold)] 
+    return np.array(k_indices)
+
+def cross_validation_least_squares(y, x, degree, seed, lambda_, k_fold):
+    # split data in k fold 
+    k_indices = build_k_indices(y, k_fold, seed) 
+    # define lists to store the loss of training data and test data 
+    rmse_tr = [] 
+    rmse_te = [] 
+    # *********************************************** 
+    # cross validation: 
+
+    loss_tr = [] 
+    loss_te = [] 
+
+    for k in range(k_fold): 
+        loss_train, loss_test = cross_validation(y, x, k_indices, k, lambda_, degree) 
+        loss_tr.append(loss_train) 
+        loss_te.append(loss_test) 
+    rmse_tr.append(sum(loss_tr)/k_fold) 
+    rmse_te.append(sum(loss_te)/k_fold) 
+
+    print(rmse_tr, rmse_te)
+    
+##########################################
+
 '''
 logistic regression
 '''
@@ -270,21 +336,23 @@ logistic regression
 def sigmoid(t):
     """apply the sigmoid function on t."""
     #sigmoid = (1+np.exp(-t))**(-1)
-    sigmoid = np.exp(-np.logaddexp(0, -t))
-    return sigmoid
+    # sigmoid = np.exp(-np.logaddexp(0, -t))
+    print(t)
+    return 1.0 / (1 + np.exp(-t))
 
 def calculate_log_loss(y, tx, w):
     """compute the loss: negative log likelihood."""
-    p = tx@w
-    s = sigmoid(p)
-    loss = -(y.T@np.log(s) + (1-y).T@np.log(1-s))
-    return np.sum(loss)
+    pred = sigmoid(tx.dot(w))
+    loss = y.T.dot(np.log(pred)) + (1 - y).T.dot(np.log(1 - pred))
+    return np.squeeze(- loss)
 
 def calculate_log_gradient(y, tx, w):
     """compute the gradient of loss."""
-    s = sigmoid(tx@w)
-    y = y.reshape((y.shape[0],1))
-    return tx.T@(s-y)
+    pred = sigmoid(tx.dot(w))
+    y = y.reshape((y.shape[0], 1))
+    grad = tx.T.dot(pred - y)
+    return grad
+
 
 def log_learning_by_gradient_descent(y, tx, w, gamma):
     """
@@ -294,9 +362,10 @@ def log_learning_by_gradient_descent(y, tx, w, gamma):
 
     loss = calculate_log_loss(y, tx, w)
 
-    loss_grad = calculate_log_gradient(y, tx, w)
+    grad = calculate_log_gradient(y, tx, w)
 
-    w = w - gamma*loss_grad
+    w = w - gamma * grad
+    
     
     return loss, w
 

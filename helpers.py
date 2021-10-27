@@ -91,3 +91,74 @@ def build_poly(x, degree):
     for deg in range(1, degree + 1):
         poly = np.c_[poly, np.power(x, deg)]
     return poly
+
+def categorize_data_feature_22(prediction, data, ids):
+    """split data in 3 subgroups based on categorical feature 22"""
+    index_0 = np.where(data[:, 22] == 0)[0]
+    index_1 = np.where(data[:, 22] == 1)[0]
+    index_2 = np.where(data[:, 22] == 2)[0]
+    index_3 = np.where(data[:, 22] == 3)[0]
+    
+    # print(index_0.shape[0], index_1.shape[0], index_2.shape[0], index_3.shape[0])
+    # size of each group respectively
+    # 99913 77544 50379 22164
+    
+    prediction_0 = prediction[index_0]
+    prediction_1 = prediction[index_1]
+    prediction_2 = prediction[index_2]
+    prediction_3 = prediction[index_3]
+    
+    data_0 = data[index_0]
+    data_1 = data[index_1]
+    data_2 = data[index_2]
+    data_3 = data[index_3]
+    
+    ids_0 = ids[index_0]
+    ids_1 = ids[index_1]
+    ids_2 = ids[index_2]
+    ids_3 = ids[index_3]
+    
+    return prediction_0, prediction_1, prediction_2, prediction_3, data_0, data_1, data_2, data_3, ids_0, ids_1, ids_2, ids_3
+
+def print_statistics(data_0, data_1, data_2, data_3):
+    """study -999 behaviour depending on subgroup (PRI jet number)"""
+    index_0 = np.where(data_0[:, 27] == -999)[0]
+    print(data_0[index_0].shape)
+    index_1 = np.where(data_1[:, 27] == -999)[0]
+    print(data_1[index_1].shape)
+    index_2 = np.where(data_2[:, 27] == -999)[0]
+    print(data_2[index_2].shape)
+    index_2 = np.where(data_2[:, 27] == -999)[0]
+    print(data_2[index_2].shape)
+    
+    """ result:
+    subgroup 0 --> -999 for (all):
+        DER deltaeta jet jet 
+        DER mass jet jet
+        DER prodeta jet jet
+        DER lep eta centrality
+        PRI jet subleading pt
+        PRI jet subleading eta
+        PRI jet subleading phi
+        PRI jet leading pt T
+        PRI jet leading eta 
+        PRI jet leading phi    
+
+    subgroup 1 --> -999 for (all):
+        DER deltaeta jet jet 
+        DER mass jet jet
+        DER prodeta jet jet
+        PRI jet subleading pt
+        PRI jet subleading eta
+        PRI jet subleading phi
+        
+    subgroup 2 --> -999 for: NONE
+    
+    subgroup 3 --> -999 for: NONE
+    
+    RESULT =
+    - we can drop features which have no meaning for the subgroup
+    - we can group together subgroup 2 and 3 to have a more balance number of groups, as they have they both don't assume -999 values in critical features
+    
+    
+    """
