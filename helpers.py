@@ -1,14 +1,23 @@
 import numpy as np
 
-"""general function for data cleaning and preprocessing"""
+"""general function for data cleaning and preprocessing
+   - drop undefined (-999) features depending on the subgroup
+   - (if train data) remove rows with undefined values in DER mass MMC
+   - (if test data) substitute undefined values with mean in DER mass MMC
+   - log transform right-skewed features
+   - standardize all features (to have 0 mean and 1 std)
+   - (if train data) remove outliers using quantile ranges
+"""
 def preprocess_data(data, prediction, low, high, is_train, subgroup):
     data = drop_undefined_features_for_subset(data, subgroup)
     if is_train == True:
         prediction, data = remove_undefined_rows_DERmassMMC(prediction, data)
-    #data = log_transform(data)
+    else:
+        prediction, data = substitute_undefined_rows_DERmassMMC(prediction, data)
+    data = log_transform(data, subgroup)
     x, mean_x, std_x = standardize(data)
-    #if is_train == True:
-        #prediction, x = remove_outliers(prediction, x, low, high)
+    if is_train == True:
+        prediction, x = remove_outliers(prediction, x, low, high, subgroup)
     return prediction, x
 
 """Standardize the original data set."""
@@ -29,21 +38,16 @@ def build_model_data(prediction, data):
     tx = np.c_[np.ones(num_samples), x]
     return y, tx
 
-"""Substitute NaN values (-999) with mean of each row"""
-"""
-def substitute_nan_with_mean(x):
-    x[x==-999] = np.nan
-    avg_per_column = np.nanmean(x, axis=0)
-    index_to_subst = np.where(np.isnan(x))
-    x[index_to_subst] = np.take(avg_per_column, index_to_subst[1])
-    return x
-"""
-
-"""Substitute outliers using quantile ranges with the median """
-def remove_outliers(y, x, low_bound, high_bound):
+"""Remove outliers using quantile ranges"""
+def remove_outliers(y, x, low_bound, high_bound, subgroup):
     # index columns with outliers visible from histograms
-    index_outliers_features = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 13, 16, 19, 21, 23, 26, 27, 28, 29]
-    
+    if subgroup == 0:
+        index_outliers_features = [0, 1, 2, 3, 4, 5, 6, 7, 9, 12, 15]
+    elif subgroup == 1:
+        index_outliers_features = [0, 1, 2, 3, 4, 5, 6, 7, 9, 12, 15, 17, 18, 21]
+    else:
+        index_outliers_features = [0, 1, 2, 3, 6, 7, 8, 10, 13, 16, 19, 21, 26, 29]
+        
     # consider only related columns
     x_outliers = x[:, index_outliers_features]
     
@@ -77,20 +81,18 @@ def split_data(x, y, ratio, seed=1):
     return x_tr, x_te, y_tr, y_te
 
 """Log transform all features which show right-skewness and have strictly positive values"""
-def log_transform(x):
-    index_right_skewed = [0, 2, 5, 9, 10, 13, 16, 19, 21, 23, 26]
-    
-    """4, 5, 6, 12, 23, 24, 25, 26, 27, 28, 29"""
+def log_transform(x, subgroup):
+    if subgroup == 0:
+        index_right_skewed = [0, 1, 2, 6, 9, 12, 15]
+    elif subgroup == 1:
+        index_right_skewed = [0, 2, 6, 7, 9, 12, 15, 17, 18, 21]
+    else:
+        index_right_skewed = [0, 2, 3, 5, 8, 9, 10, 13, 16, 19, 21, 23, 26, 29]
     
     return_x = np.copy(x)
     return_x[:, index_right_skewed] = np.log(return_x[:, index_right_skewed])
     
     return return_x
-
-def drop_column(data):
-    index_col = []
-    return_data = np.delete(data, index_col, axis=1)
-    return return_data
 
 """polynomial basis functions for input data x, for j=0 up to j=degree."""
 def build_poly(x, degree):
@@ -200,5 +202,30 @@ def remove_undefined_rows_DERmassMMC(prediction, x):
     
     return return_prediction, return_x
 
-        
+"""Substitute undefined rows for DER mass MMC when preprocessing the test dataset (as we )"""
+def substitute_undefined_rows_DERmassMMC(prediction, x):
+    feature_index = 0
+    x[:, feature_index][x[:, feature_index]==-999] = np.nan
+    mean = np.nanmean(x[:, feature_index], axis=0)
+    index_to_subst = np.where(np.isnan(x[:, feature_index]))
+    print(x.shape)
+    for i in index_to_subst:
+        x[i, feature_index] = mean
     
+    return prediction, x
+
+"""Reconstruct singe vector of predictions using predictions found for all 3 subgroups"""        
+def build_final_predictions(y_pred_0, y_pred_1, y_pred_2, size, index_0, index_1, index_2):
+    y_pred_final = np.zeros(size, dtype=np.float)
+    
+    # correction factor for indexes
+    index_0 = index_0 - 350000
+    index_1 = index_1 - 350000
+    index_2 = index_2 - 350000
+    
+    # reconstruct final prediction vector
+    y_pred_final[index_0] = y_pred_0
+    y_pred_final[index_1] = y_pred_1
+    y_pred_final[index_2] = y_pred_2
+    
+    return y_pred_final

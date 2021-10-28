@@ -205,55 +205,167 @@ def ridge_regression(y, tx, lambda_):
 
 ##########################################
 
-"""K-fold cross validation"""
+"""Logistic Regression"""
 
-##########################################     
-"""Cross-validation for least squares, gradient descent, stochastic gradient descent, ridge regression"""  
+def sigmoid(t): 
+    """apply the sigmoid function on t.""" 
+    #sigmoid = (1+np.exp(-t))**(-1) 
+    # sigmoid = np.exp(-np.logaddexp(0, -t)) 
+    #print(t) 
+    return 1.0 / (1 + np.exp(-t)) 
+ 
+def calculate_log_loss(y, tx, w): 
+    """compute the loss: negative log likelihood.""" 
+    pred = sigmoid(tx.dot(w)) 
+    loss = y.T.dot(np.log(pred)) + (1 - y).T.dot(np.log(1 - pred)) 
+    sum_loss = np.squeeze(- loss) 
+    return sum_loss/y.shape[0] 
+ 
+def calculate_log_gradient(y, tx, w): 
+    """compute the gradient of loss.""" 
+    #print('tx.dot(w)', tx.dot(w)) 
+    pred = sigmoid(tx.dot(w)) 
+    #print('sigm(tx.dot(w)', pred, 'y', y) 
+    #print('tx.T', tx.T) 
+    grad = tx.T@(pred - y) 
+    return grad/y.shape[0] 
+ 
+def log_learning_by_gradient_descent(y, tx, w, gamma): 
+    """ 
+    Do one step of gradient descent using logistic regression. 
+    Return the loss and the updated w. 
+    """ 
+ 
+    loss = calculate_log_loss(y, tx, w) 
+    grad = calculate_log_gradient(y, tx, w) 
+     
+    w = w - gamma * grad 
+     
+    return loss, w 
+ 
+def penalized_logistic_regression(y, tx, w, lambda_): 
+    """return the loss, gradient""" 
+    loss = calculate_log_loss(y, tx, w) + lambda_/2*np.linalg.norm(w) 
+    gradient = calculate_log_gradient(y, tx, w) + lambda_/2*2*w #gradient of euclnorm(x) = 2x 
+    return loss, gradient 
+ 
+def learning_by_penalized_gradient(y, tx, w, gamma, lambda_): 
+    """ 
+    Do one step of gradient descent, using the penalized logistic regression. 
+    Return the loss and updated w. 
+    """ 
+    loss, gradient = penalized_logistic_regression(y, tx, w, lambda_) 
+    w = w - gamma*gradient 
+     
+     
+    return loss, w
+
+def logistic_regression(y, tx, initial_w, max_iters, gamma):
+    threshold = 1e-5
+    losses = [] 
+    
+    # y_0 = y but -1 -> 0 instead 
+    y_tmp = np.ones(len(y_pp)) 
+    y_tmp[np.where(y_pp==-1)] = 0 
+    print(y, y_tmp) 
+
+
+    np.set_printoptions(suppress=True, floatmode = 'fixed') 
+    
+    
+    w = initial_w
+    # start the logistic regression 
+    for iter in range(max_iter): 
+        # get loss and update w. 
+        loss, w = log_learning_by_gradient_descent(y_tmp, tx_pp, w, gamma) 
+        # log info 
+        if iter % 10 == 0: 
+            print("Current iteration={i}, loss={l}".format(i=iter, l=loss)) 
+        # converge criterion 
+        losses.append(loss) 
+        if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
+            breaktx = np.c_[np.ones((y.shape[0], 1)), x]
+            
+    return loss, w
+            
+def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
+    threshold = 1e-8 
+    losses = [] 
+
+
+    # y_0 = y but -1 -> 0 instead 
+    y_0 = np.ones(len(y_pp)) 
+    y_0[np.where(y_pp==-1)] = 0 
+    print(y, y_0) 
+
+    w = initial_w
+    # start the logistic regression 
+    for iter in range(max_iter): 
+        # get loss dand update w. 
+        loss, w = learning_by_penalized_gradient(y_0, tx, w, gamma, lambda_) 
+        # log info 
+        if iter % 1 == 0: 
+            print("Current iteration={i}, loss={l}".format(i=iter, l=loss)) 
+        # converge criterion 
+        losses.append(loss) 
+        if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
+            break
+    
+    return loss, w
+
+##########################################
+
+"""K-fold cross validation for all methods used"""
+"""
+   - least squares
+   - gradient descent
+   - stochastic gradient descent
+   - ridge regression
+   - logistic regression
+   - regularized logistic regression
+"""
   
 def cross_validation(model_used, y, x, k_indices, k, seed = 0, max_iters = 0, initial_w = 0, lambda_ = 0, gamma = 0, degree = 0):  
-    # *******************************************  
     # cross validation for model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
-    # *******************************************  
      
-    # *******************************************  
     # get k'th subgroup in test, others in train:  
-    # *******************************************  
     x_train, y_train = x[np.ravel(k_indices[: k]), :], y[np.ravel(k_indices[: k])]  
     x_test, y_test = x[k_indices[k]], y[k_indices[k]]  
     x_train_temp = x[np.ravel(k_indices[k+1 :]), :]  
     y_train_temp = y[np.ravel(k_indices[k+1 :])]  
     x_train, y_train = np.append(x_train, x_train_temp, 0), np.append(y_train, y_train_temp)  
   
-    # *******************************************  
     # form data with polynomial degree: only for ridge regression  
-    # *******************************************  
     if degree > 0: 
         x_train = build_poly(x_train, degree)  
         x_test = build_poly(x_test, degree)  
       
-    # *******************************************  
-    # find w and mse using given model 
-    # ******************************************* 
-     
-    if model_used == 'least_squares': 
-        weights, mse_train = least_squares(y_train, x_train) 
+    f model_used == 'least_squares': 
+        weights, loss_train = least_squares(y_train, x_train) 
     elif model_used == 'gradient_descent': 
-        weights, mse_train = least_squares_GD(y_train, x_train, initial_w, max_iters, gamma) 
+        weights, loss_train = least_squares_GD(y_train, x_train, initial_w, max_iters, gamma) 
     elif model_used == 'stochastic_gradient_descent': 
-        weights, mse_train = least_squares_SGD(y_train, x_train, initial_w, max_iters, gamma) 
+        weights, loss_train = least_squares_SGD(y_train, x_train, initial_w, max_iters, gamma) 
     elif model_used == 'ridge_regression': 
-        weights, mse_train = ridge_regression(y_train, x_train, lambda_) 
+        weights, loss_train = ridge_regression(y_train, x_train, lambda_) 
+    elif model_used == 'logistic_regression' 
+         
+        weights, loss_train = logistic_regression(y_train, x_train, initial_w, max_iters, gamma) 
+    #elif model_used == 'reg_logistic_regression' 
+    #    weights, mse_train =  
                             
      
     # *******************************************  
     # calculate the loss for train and test data:  
-    # *******************************************  
-    mse_test = compute_loss(y_test, x_test, weights)  
+    # ******************************************* 
+    if model_used == 'logistic_regression' or 'reg_logistic_regression': 
+        #loss_test =  
+    else: loss_test = compute_loss(y_test, x_test, weights)  
                                
-    loss_tr = mse_train  
-    loss_te = mse_test  
+    #loss_tr = mse_train  
+    #loss_te = mse_test  
       
-    return loss_tr, loss_te  
+    return loss_train, loss_test  
   
 def build_k_indices(y, k_fold, seed):  
     """build k indices for k-fold."""  
@@ -266,9 +378,7 @@ def build_k_indices(y, k_fold, seed):
     return np.array(k_indices) 
  
 def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iters = 0, initial_w = 0, lambda_ = 0, gamma = 0, degree = 0): 
-    # *******************************************  
     # model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
-    # *******************************************  
      
     # split data in k fold  
     k_indices = build_k_indices(y, k_fold, seed)  
@@ -291,63 +401,3 @@ def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iter
     print('-->  ',model_used, ' cross-validation: avg_mse_tr=', mse_tr, ' avg_mse_te=', mse_te) 
      
     
-##########################################
-
-'''
-logistic regression
-'''
-
-def sigmoid(t):
-    """apply the sigmoid function on t."""
-    #sigmoid = (1+np.exp(-t))**(-1)
-    # sigmoid = np.exp(-np.logaddexp(0, -t))
-    print(t)
-    return 1.0 / (1 + np.exp(-t))
-
-def calculate_log_loss(y, tx, w):
-    """compute the loss: negative log likelihood."""
-    pred = sigmoid(tx.dot(w))
-    loss = y.T.dot(np.log(pred)) + (1 - y).T.dot(np.log(1 - pred))
-    return np.squeeze(- loss)
-
-def calculate_log_gradient(y, tx, w):
-    """compute the gradient of loss."""
-    pred = sigmoid(tx.dot(w))
-    y = y.reshape((y.shape[0], 1))
-    grad = tx.T.dot(pred - y)
-    return grad
-
-
-def log_learning_by_gradient_descent(y, tx, w, gamma):
-    """
-    Do one step of gradient descent using logistic regression.
-    Return the loss and the updated w.
-    """
-
-    loss = calculate_log_loss(y, tx, w)
-
-    grad = calculate_log_gradient(y, tx, w)
-
-    w = w - gamma * grad
-    
-    
-    return loss, w
-
-
-def penalized_logistic_regression(y, tx, w, lambda_):
-    """return the loss, gradient"""
-    loss = calculate_log_loss(y, tx, w) + lambda_/2*np.linalg.norm(w)
-    gradient = calculate_log_gradient(y, tx, w) + lambda_/2*2*w #gradient of euclnorm(x) = 2x
-    return loss, gradient
-
-
-def learning_by_penalized_gradient(y, tx, w, gamma, lambda_):
-    """
-    Do one step of gradient descent, using the penalized logistic regression.
-    Return the loss and updated w.
-    """
-    loss, gradient = penalized_logistic_regression(y, tx, w, lambda_)
-    w = w - gamma*gradient
-    
-    return loss, w
-
