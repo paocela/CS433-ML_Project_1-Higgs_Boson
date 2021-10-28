@@ -150,7 +150,7 @@ def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
     exection_time = (end_time - start_time).total_seconds()
     print("SGD: execution time={t:.3f} seconds".format(t=exection_time))
     
-    print(f"Gradient Descend: final loss = {sgd_losses[-1]}")
+    print(f"Stochastic Gradient Descend: final loss = {sgd_losses[-1]}")
     
     # return only final loss and optimal weights
     return sgd_ws[-1], sgd_losses[-1]
@@ -265,9 +265,9 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
     losses = [] 
     
     # y_0 = y but -1 -> 0 instead 
-    y_tmp = np.ones(len(y_pp)) 
-    y_tmp[np.where(y_pp==-1)] = 0 
-    print(y, y_tmp) 
+    y_tmp = np.ones(len(y)) 
+    y_tmp[np.where(y==-1)] = 0 
+    #print(y, y_tmp) 
 
 
     np.set_printoptions(suppress=True, floatmode = 'fixed') 
@@ -275,18 +275,18 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
     
     w = initial_w
     # start the logistic regression 
-    for iter in range(max_iter): 
+    for iter in range(max_iters): 
         # get loss and update w. 
-        loss, w = log_learning_by_gradient_descent(y_tmp, tx_pp, w, gamma) 
+        loss, w = log_learning_by_gradient_descent(y_tmp, tx, w, gamma) 
         # log info 
-        if iter % 10 == 0: 
+        if iter % 20 == 0: 
             print("Current iteration={i}, loss={l}".format(i=iter, l=loss)) 
         # converge criterion 
         losses.append(loss) 
         if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
             breaktx = np.c_[np.ones((y.shape[0], 1)), x]
             
-    return loss, w
+    return w, loss
             
 def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
     threshold = 1e-8 
@@ -294,24 +294,24 @@ def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
 
 
     # y_0 = y but -1 -> 0 instead 
-    y_0 = np.ones(len(y_pp)) 
-    y_0[np.where(y_pp==-1)] = 0 
-    print(y, y_0) 
+    y_0 = np.ones(len(y)) 
+    y_0[np.where(y==-1)] = 0 
+    #print(y, y_0) 
 
     w = initial_w
     # start the logistic regression 
-    for iter in range(max_iter): 
-        # get loss dand update w. 
+    for iter in range(max_iters): 
+        # get loss and update w. 
         loss, w = learning_by_penalized_gradient(y_0, tx, w, gamma, lambda_) 
         # log info 
-        if iter % 1 == 0: 
+        if iter % 20 == 0: 
             print("Current iteration={i}, loss={l}".format(i=iter, l=loss)) 
         # converge criterion 
         losses.append(loss) 
         if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
             break
     
-    return loss, w
+    return w, loss
 
 ##########################################
 
@@ -326,7 +326,7 @@ def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
 """
   
 def cross_validation(model_used, y, x, k_indices, k, seed = 0, max_iters = 0, initial_w = 0, lambda_ = 0, gamma = 0, degree = 0):  
-    # cross validation for model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
+    # cross validation for model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' or 'logistic_regression' or 'reg_logistic_regression' 
      
     # get k'th subgroup in test, others in train:  
     x_train, y_train = x[np.ravel(k_indices[: k]), :], y[np.ravel(k_indices[: k])]  
@@ -335,37 +335,40 @@ def cross_validation(model_used, y, x, k_indices, k, seed = 0, max_iters = 0, in
     y_train_temp = y[np.ravel(k_indices[k+1 :])]  
     x_train, y_train = np.append(x_train, x_train_temp, 0), np.append(y_train, y_train_temp)  
   
-    # form data with polynomial degree: only for ridge regression  
+    # form data with polynomial degree if choose to 
     if degree > 0: 
         x_train = build_poly(x_train, degree)  
         x_test = build_poly(x_test, degree)  
       
-    f model_used == 'least_squares': 
-        weights, loss_train = least_squares(y_train, x_train) 
+    if model_used == 'least_squares': 
+        weights, loss_tr = least_squares(y_train, x_train) 
     elif model_used == 'gradient_descent': 
-        weights, loss_train = least_squares_GD(y_train, x_train, initial_w, max_iters, gamma) 
+        weights, loss_tr = least_squares_GD(y_train, x_train, initial_w, max_iters, gamma) 
     elif model_used == 'stochastic_gradient_descent': 
-        weights, loss_train = least_squares_SGD(y_train, x_train, initial_w, max_iters, gamma) 
+        weights, loss_tr = least_squares_SGD(y_train, x_train, initial_w, max_iters, gamma) 
     elif model_used == 'ridge_regression': 
-        weights, loss_train = ridge_regression(y_train, x_train, lambda_) 
-    elif model_used == 'logistic_regression' 
-         
-        weights, loss_train = logistic_regression(y_train, x_train, initial_w, max_iters, gamma) 
-    #elif model_used == 'reg_logistic_regression' 
-    #    weights, mse_train =  
+        weights, loss_tr = ridge_regression(y_train, x_train, lambda_) 
+    elif model_used == 'logistic_regression':
+        weights, loss_tr = logistic_regression(y_train, x_train, initial_w, max_iters, gamma) 
+    elif model_used == 'reg_logistic_regression': 
+        weights, loss_tr =  reg_logistic_regression(y_train, x_train, lambda_, initial_w, max_iters, gamma)
                             
      
     # *******************************************  
     # calculate the loss for train and test data:  
     # ******************************************* 
-    if model_used == 'logistic_regression' or 'reg_logistic_regression': 
-        #loss_test =  
-    else: loss_test = compute_loss(y_test, x_test, weights)  
-                               
-    #loss_tr = mse_train  
-    #loss_te = mse_test  
+    if model_used == 'logistic_regression':
+        y_test_tmp = np.ones(len(y_test)) 
+        y_test_tmp[np.where(y_test==-1)] = 0 
+        loss_te = calculate_log_loss(y_test_tmp, x_test, weights)
+    elif model_used == 'reg_logistic_regression': 
+        y_test_tmp = np.ones(len(y_test)) 
+        y_test_tmp[np.where(y_test==-1)] = 0 
+        loss_te = calculate_log_loss(y_test_tmp, x_test, weights) + lambda_/2*np.linalg.norm(weights) 
+    else: 
+        loss_te = compute_loss(y_test, x_test, weights)              
       
-    return loss_train, loss_test  
+    return loss_tr, loss_te 
   
 def build_k_indices(y, k_fold, seed):  
     """build k indices for k-fold."""  
@@ -381,10 +384,7 @@ def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iter
     # model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
      
     # split data in k fold  
-    k_indices = build_k_indices(y, k_fold, seed)  
-    # define lists to store the loss of training data and test data  
-    mse_tr = []  
-    mse_te = []  
+    k_indices = build_k_indices(y, k_fold, seed)   
     # *******************************************  
     # cross validation:  
  
@@ -395,9 +395,9 @@ def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iter
         loss_train, loss_test = cross_validation(model_used, y, x, k_indices, k, seed, max_iters, initial_w, lambda_, gamma, degree)  
         loss_tr.append(loss_train)  
         loss_te.append(loss_test)  
-    mse_tr.append(sum(loss_tr)/k_fold)  
-    mse_te.append(sum(loss_te)/k_fold)  
+    avg_loss_tr = sum(loss_tr)/k_fold 
+    avg_loss_te = sum(loss_te)/k_fold  
  
-    print('-->  ',model_used, ' cross-validation: avg_mse_tr=', mse_tr, ' avg_mse_te=', mse_te) 
+    print('--->  ',model_used, ' cross-validation: avg_loss_tr=', avg_loss_tr, ' avg_loss_te=', avg_loss_te, '  <---') 
      
     
