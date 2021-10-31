@@ -1,6 +1,6 @@
 # CS433 Machine Learning - Project1
-## Authors: Olle Ottander, Paolo Celada and Gustav Karlbom
-#### Department of Computer Science, EPFL Lausanne, Switzerland
+### **Authors**: Olle Ottander, Paolo Celada and Gustav Karlbom
+#### *Department of Computer Science, EPFL Lausanne, Switzerland*
 ## Content
 A critical part in the ATLAS experiment is being able to distinguish between a *tau tau decay of a Higgs boson* versus *background*, using data detected after a head-on collision between 2 protons.<br> The projected consisted of applying machine learning methods to a set of original and already classified decay signatures in order to predict unseen ones. After an initial cleaning and preprocessing step, multiple ML methods have been tested on training data and the relative test error measured locally using cross-validation. The best model's prediction were then submitted to an online platform which calculated both accuracy and F1 score.
 
