@@ -283,8 +283,8 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
             print("Current iteration={i}, loss={l}".format(i=iter, l=loss)) 
         # converge criterion 
         losses.append(loss) 
-        if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
-            breaktx = np.c_[np.ones((y.shape[0], 1)), x]
+        #if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold: 
+         #   breaktx = np.c_[np.ones((y.shape[0], 1)), x]
             
     return w, loss
             
@@ -312,6 +312,40 @@ def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
             break
     
     return w, loss
+
+
+'''
+Find optimal lambda for reg log regression:
+'''
+def find_reg_log_lambda(y, x, ratio, seed, lambdas, initial_w, max_iters, gamma):
+    # split the data into train and test
+    x_train, x_test, y_train, y_test = split_data(x, y, ratio, seed)
+    
+    losses_tr = []
+    losses_te = []
+    
+    for ind, lambda_ in enumerate(lambdas):
+        # reg log regression with a given lambda
+        weights_train, loss_train = reg_logistic_regression(y_train, x_train, lambda_, initial_w, max_iters, gamma)
+        
+        # calculate loss on test set
+        y_test_tmp = np.ones(len(y_test)) 
+        y_test_tmp[np.where(y_test==-1)] = 0 
+        loss_test = calculate_log_loss(y_test_tmp, x_test, weights_train) # not penalized loss
+        
+        losses_tr.append(loss_train)
+        losses_te.append(loss_test)
+        
+    
+    # choose best lambda as the one with smallest test loss
+    index_lambda_optimal = np.argmin(losses_te)
+    best_lambda = lambdas[index_lambda_optimal]
+    
+    print(f"Reg log hypherparameter found: Lambda = {best_lambda}")
+    plot_train_test(losses_tr, losses_te, lambdas, 1)
+    
+    return best_lambda
+
 
 ##########################################
 
