@@ -388,9 +388,7 @@ def cross_validation(model_used, y, x, k_indices, k, seed = 0, max_iters = 0, in
         weights, loss_tr =  reg_logistic_regression(y_train, x_train, lambda_, initial_w, max_iters, gamma)
                             
      
-    # *******************************************  
     # calculate the loss for train and test data:  
-    # ******************************************* 
     if model_used == 'logistic_regression':
         y_test_tmp = np.ones(len(y_test)) 
         y_test_tmp[np.where(y_test==-1)] = 0 
@@ -418,10 +416,9 @@ def evaluate_using_cross_validation(model_used, y, x, k_fold, seed = 0, max_iter
     # model_used = 'least_squares' or 'gradient_descent' or 'stochastic_gradient_descent' or 'ridge_regression' 
      
     # split data in k fold  
-    k_indices = build_k_indices(y, k_fold, seed)   
-    # *******************************************  
+    k_indices = build_k_indices(y, k_fold, seed) 
+    
     # cross validation:  
- 
     loss_tr = []
     loss_te = []  
  

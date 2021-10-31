@@ -82,6 +82,7 @@ def split_data(x, y, ratio, seed=1):
 
 """Log transform all features which show right-skewness and have strictly positive values"""
 def log_transform(x, subgroup):
+    # choose index set depending on subgroup
     if subgroup == 0:
         index_right_skewed = [0, 1, 2, 6, 9, 12, 15]
     elif subgroup == 1:
@@ -89,6 +90,7 @@ def log_transform(x, subgroup):
     else:
         index_right_skewed = [0, 2, 3, 5, 8, 9, 10, 13, 16, 19, 21, 23, 26, 29]
     
+    # apply log transform
     return_x = np.copy(x)
     return_x[:, index_right_skewed] = np.log(return_x[:, index_right_skewed])
     
@@ -206,9 +208,12 @@ def remove_undefined_rows_DERmassMMC(prediction, x):
 def substitute_undefined_rows_DERmassMMC(prediction, x):
     feature_index = 0
     x[:, feature_index][x[:, feature_index]==-999] = np.nan
+    
+    # calculate mean not considering nan
     mean = np.nanmean(x[:, feature_index], axis=0)
     index_to_subst = np.where(np.isnan(x[:, feature_index]))
-    print(x.shape)
+    
+    # apply substitution
     for i in index_to_subst:
         x[i, feature_index] = mean
     
