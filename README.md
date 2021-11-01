@@ -13,6 +13,6 @@ Files created and used throughtout the project implementation are the following,
   ```
 - **/implementaions.py**: contains used machine learning methods implementation
 - **/helpers.py**: contains all functions used for data cleaning and preprocessing, together with feature transformation
-- **/data**: folder containing training data (test data must be added manually)
+- **/data**: folder containing training data (test data must be added manually in this folder after downloading them from )
 - **/proj1_helpers.py**: contains functions to load training data, handle them and store prediction to an output file
 - **/report.pdf**: report of the project
