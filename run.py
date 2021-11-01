@@ -5,6 +5,8 @@ from proj1_helpers import *
 from implementations import *
 from helpers import *
 
+print("Loading training data...")
+
 # Loading train data
 DATA_TRAIN_PATH = 'data/train.csv' # TODO: download train data and supply path here 
 prediction, data, ids = load_csv_data(DATA_TRAIN_PATH)
